@@ -9,6 +9,7 @@ test("accepts explicit local WASM path and supplied binary", async () => {
   const fromBytes = await createDisassembler({ wasmBinary: await readFile(path),
     wasmURL: "missing.wasm" });
   assert.deepEqual(fromPath.decode(Uint8Array.of(0x90)), fromBytes.decode(Uint8Array.of(0x90)));
+  assert.equal(fromPath.decode(Uint8Array.of(0x90))[0].text, "nop");
 });
 test("reports missing asset and invalid WASM", async () => {
   await assert.rejects(createDisassembler({ wasmURL: new URL("missing.wasm", import.meta.url) }),

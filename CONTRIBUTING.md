@@ -17,7 +17,7 @@
 - **Magic values**: Explain non-obvious literals with a comment, cites the authoritative source used (spec section, RFC section, or upstream source/header URL).
 - **Console usage**: Only `console.error()` and `console.warn()` are allowed in production code.
 - **Identifiers**: Minimum 2 characters (except `_`, `i`, `j`, `k`, `x`, `y`).
-- Prefer small, cohesive modules that have a single, clearly stated responsibility (“one reason to change”). 
+- Prefer small, cohesive modules that have a single, clearly stated responsibility (“one reason to change”).
 - Do **not** introduce new generically named modules such as `helpers`, `utils`, `extra`, `extensions`, or similar grab-bag names. If you feel tempted to add `helpers.ts`, it usually means there are at least two more meaningful modules hiding in that file.
 - When you need shared logic, group it by concept rather than by the generic idea of “helping” another module.
 - Prefer immutable over mutable
@@ -81,7 +81,7 @@
 
 - Before submitting a pull request, ensure your code adheres to the project's standards and that all tests pass.
 - Test coverage must not go down with a change. New code should have close to 100% coverage by all metrics.
-- Use **one test file per production module** whenever practical. 
+- Use **one test file per production module** whenever practical.
 - For every new public function or module:
   - write tests for the “happy paths” behavior, and
   - write tests for **all known unhappy paths and edge cases**: invalid inputs, truncated data, out-of-bounds offsets, negative or extreme values, and any other failure modes that are meaningful for that unit.

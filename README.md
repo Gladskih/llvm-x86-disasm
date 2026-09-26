@@ -103,6 +103,7 @@ downloads the pinned LLVM/Emscripten sources and builds host llvm-tblgen first.
 ```sh
 npm ci
 npm run build:wasm
+npm run verify:licenses
 npm run lint
 npm run test:coverage
 npm run test:types

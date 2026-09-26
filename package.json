@@ -21,11 +21,12 @@
     "build": "node scripts/build.mjs",
     "lint": "eslint .",
     "test": "node --test test/*.test.mjs",
-    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=test/** --test-coverage-exclude=dist/llvm-x86.js --test-coverage-exclude=dist/features.js --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 test/*.test.mjs",
+    "test:coverage": "node scripts/test-coverage.mjs",
     "test:browser": "playwright test",
     "test:types": "tsc --noEmit --strict --module nodenext --target es2022 test/types.ts",
     "test:mutation": "node scripts/test-mutations.mjs",
     "verify:package": "node scripts/verify-package.mjs",
+    "verify:licenses": "bash scripts/verify-licenses.sh",
     "prepack": "npm run build && npm run verify:package"
   },
   "repository": {

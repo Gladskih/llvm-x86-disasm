@@ -4,7 +4,7 @@ import { features, getInstructionRequirements } from "../dist/metadata.js";
 import { createDisassembler } from "../dist/node.js";
 
 test("returns authoritative AVX predicates for decoded VEX instruction", async () => {
-  // LLVM test/MC/Disassembler/X86/x86-64.txt: VEX vaddps ymm0, ymm0, ymm0.
+  // VEX vaddps ymm0, ymm0, ymm0; see pinned LLVM X86Disassembler.cpp and X86.td.
   const decoder = await createDisassembler();
   const instruction = decoder.decodeMetadata(Uint8Array.of(0xc5, 0xfc, 0x58, 0xc0))[0];
   assert.equal(instruction.opcode, "VADDPSYrr");

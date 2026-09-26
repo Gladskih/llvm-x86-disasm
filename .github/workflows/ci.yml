@@ -44,6 +44,7 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run build:wasm
+      - run: npm run verify:licenses
       - run: python3 -m unittest discover -s test -p '*_test.py'
       - run: npm run test:coverage
       - run: npm run test:types
