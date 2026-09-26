@@ -1,0 +1,65 @@
+name: Publish package
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: package-${{ github.sha }}
+      - name: Verify tag and tarball
+        run: |
+          test "$GITHUB_REF_TYPE" = tag
+          test "$GITHUB_REF_NAME" = "v$(node -p 'require("./package.json").version')"
+          sha256sum --check package.sha256
+          node scripts/test-tarball.mjs
+      - name: Check existing npm release
+        id: registry
+        run: |
+          version=$(node -p 'require("./package.json").version')
+          expected=$(node -p 'require("./pack-result.json")[0].integrity')
+          existing=$(npm view "llvm-x86-disasm@$version" dist.integrity 2>/dev/null || true)
+          if [ -n "$existing" ]; then
+            test "$existing" = "$expected"
+            echo 'exists=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'exists=false' >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish tested artifact with npm OIDC
+        if: steps.registry.outputs.exists == 'false'
+        run: npm publish "$(node -p 'require("./pack-result.json")[0].filename')" --ignore-scripts --access public --provenance
+      - name: Create GitHub release
+        run: |
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            gh release upload "$GITHUB_REF_NAME" *.tgz package.sha256 build-info.json --clobber
+          else
+            gh release create "$GITHUB_REF_NAME" *.tgz package.sha256 build-info.json --generate-notes
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

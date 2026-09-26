@@ -1,0 +1,46 @@
+{
+  "name": "llvm-x86-disasm",
+  "version": "0.1.0",
+  "description": "Compact local LLVM x86/x64 WebAssembly disassembler and instruction predicates",
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "browser": "./dist/browser.js",
+      "node": "./dist/node.js",
+      "default": "./dist/browser.js"
+    },
+    "./llvm-x86.wasm": "./dist/llvm-x86.wasm"
+  },
+  "types": "./dist/index.d.ts",
+  "files": ["dist/", "LICENSE", "THIRD_PARTY_NOTICES.md", "licenses/", "upstream.json"],
+  "scripts": {
+    "build:wasm": "bash scripts/build-wasm.sh",
+    "build": "node scripts/build.mjs",
+    "lint": "eslint .",
+    "test": "node --test test/*.test.mjs",
+    "test:coverage": "node --test --experimental-test-coverage --test-coverage-exclude=test/** --test-coverage-exclude=dist/llvm-x86.js --test-coverage-exclude=dist/features.js --test-coverage-lines=100 --test-coverage-branches=100 --test-coverage-functions=100 test/*.test.mjs",
+    "test:browser": "playwright test",
+    "test:types": "tsc --noEmit --strict --module nodenext --target es2022 test/types.ts",
+    "test:mutation": "node scripts/test-mutations.mjs",
+    "verify:package": "node scripts/verify-package.mjs",
+    "prepack": "npm run build && npm run verify:package"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Gladskih/llvm-x86-disasm.git"
+  },
+  "bugs": { "url": "https://github.com/Gladskih/llvm-x86-disasm/issues" },
+  "homepage": "https://github.com/Gladskih/llvm-x86-disasm#readme",
+  "publishConfig": { "access": "public" },
+  "keywords": ["llvm", "x86", "x64", "disassembler", "webassembly", "wasm", "instruction-set"],
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.63.0",
+    "eslint": "10.11.0",
+    "globals": "17.12.0",
+    "typescript": "7.0.2"
+  }
+}

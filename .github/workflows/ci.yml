@@ -1,0 +1,75 @@
+name: Build and verify
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    env:
+      JOBS: "4"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "24"
+          cache: npm
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            .build/llvm
+            .build/emsdk
+          key: llvm-x86-sources-${{ runner.os }}-${{ hashFiles('upstream.json') }}
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: |
+            .build/host
+            .build/wasm
+            .build/bridge
+          key: llvm-x86-build-${{ runner.os }}-${{ hashFiles('upstream.json', 'scripts/build-wasm.sh', 'scripts/prepare-mc.mjs', 'native/CMakeLists.txt') }}
+      - run: sudo apt-get update && sudo apt-get install -y ninja-build cmake
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build:wasm
+      - run: python3 -m unittest discover -s test -p '*_test.py'
+      - run: npm run test:coverage
+      - run: npm run test:types
+      - run: npm run test:mutation
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser
+      - run: npm run verify:package
+      - name: Verify exact release tarball
+        run: |
+          npm pack --ignore-scripts --json > pack-result.json
+          node scripts/test-tarball.mjs
+          sha256sum "$(node -p 'require("./pack-result.json")[0].filename')" > package.sha256
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: package-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            *.tgz
+            package.sha256
+            pack-result.json
+            dist/build-info.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: footprint-${{ github.sha }}
+          if-no-files-found: error
+          include-hidden-files: true
+          path: |
+            .build/bridge/llvm-x86.map
+            .build/bridge/archive-inputs.tsv

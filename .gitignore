@@ -1,0 +1,11 @@
+/.build/
+/artifacts/
+/coverage/
+/dist/
+/node_modules/
+/*.tgz
+/pack-result.json
+/package.sha256
+/test-results/
+__pycache__/
+*.pyc
