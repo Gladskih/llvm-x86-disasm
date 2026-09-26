@@ -7,6 +7,8 @@ are not modified.
 - Small modules with named responsibilities; no generic utility modules. Source
   functions stay below 50 lines and ESLint enforces complexity below 10. Double
   quotes, const by default, descriptive identifiers and no production console.log.
+  Native decode validation is factored so its complexity is at most nine, including
+  short-circuit boolean operators; decoder construction and other helpers stay below ten.
   Long tool invocation lines and verbatim upstream license text are intentional.
 - No boolean flow-control parameters, argument-bag types, duplicated calculated
   addresses, DOM objects, runtime dependencies or external analysis services.

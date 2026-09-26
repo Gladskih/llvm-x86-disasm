@@ -1,6 +1,6 @@
 {
   "name": "llvm-x86-disasm",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Compact local LLVM x86/x64 WebAssembly disassembler and instruction predicates",
   "type": "module",
   "license": "MIT",

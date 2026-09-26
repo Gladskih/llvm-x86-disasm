@@ -68,13 +68,16 @@ unsigned controlFlow(Decoder &decoder, const MCInst &inst) {
       analysis.isConditionalBranch(inst) ? 3 : analysis.isIndirectBranch(inst) ? 5 :
       analysis.isUnconditionalBranch(inst) ? 4 : 0;
 }
+bool hasDisassemblyState(const Decoder *decoder) {
+  return decoder && decoder->disassembler && decoder->analysis && decoder->printer;
+}
 // Eight uint32 words: status, size, opcode-name pointer, flow, hasTarget,
 // target low/high, text pointer. Storage is copied by JS before the next call.
 uint32_t result[8];
 void decodeInstruction(Decoder *decoder, unsigned length, uint64_t address, MCInst &inst) {
   std::fill(std::begin(result), std::end(result), 0);
   result[1] = length ? 1 : 0;
-  if (!decoder || !decoder->disassembler || !decoder->analysis || !decoder->printer) return;
+  if (!hasDisassemblyState(decoder)) return;
   uint64_t size = 0;
   const auto status = decoder->disassembler->getInstruction(inst, size,
       ArrayRef<uint8_t>(input, std::min(length, 15u)), address, nulls());
