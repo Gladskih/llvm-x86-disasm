@@ -3,8 +3,7 @@
 [![CI](https://github.com/Gladskih/llvm-x86-disasm/actions/workflows/ci.yml/badge.svg)](https://github.com/Gladskih/llvm-x86-disasm/actions/workflows/ci.yml)
 [![npm](https://img.shields.io/npm/v/llvm-x86-disasm)](https://www.npmjs.com/package/llvm-x86-disasm)
 
-Local LLVM x86/x64 disassembly for browsers, Web Workers and Node.js. Designed for
-binary101 entrypoint previews and comparison with iced-x86 and Intel XED. Ships
+Local LLVM x86/x64 disassembly for browsers, Web Workers and Node.js. Ships
 prebuilt WebAssembly, ESM and TypeScript declarations, with **zero runtime npm
 dependencies**. Users do not need LLVM, Emscripten or a compiler.
 
@@ -84,8 +83,10 @@ LLVM opcode names are version-specific and must not be persisted as stable ident
 ## Size and build scope
 
 LLVM 21.1.8 / Emscripten 4.0.23, pinned by commit; LLVM source archive verified by
-SHA-256. WASM is approximately **1.87 MB raw / 554 KB gzip**. `dist/build-info.json`
-records exact sizes, checksums and toolchain pins for each build.
+SHA-256. The 0.1.2 build produces **1,874,809 WASM bytes / 553,544 gzip bytes**
+(gzip level 9). Local WSL and GitHub Actions builds produced the same WASM SHA-256:
+`85626f44ead5b000cf2914e4837ddca0d21fc77cc1ff6b39c210516205e15ea5`.
+`dist/build-info.json` records sizes, checksums and toolchain pins for each build.
 
 Only X86 MC disassembly, Intel formatting, instruction information and control-flow
 analysis are registered. No assembler, encoder, object writers, LLVM IR, optimization
@@ -96,7 +97,7 @@ checks prevent accidental growth.
 
 ## Development and release
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the quality gate. Linux or WSL requires
+Linux or WSL requires
 CMake, Ninja, a host C++ compiler, Python 3, curl, git, and Node 24/npm. The build
 downloads the pinned LLVM/Emscripten sources and builds host llvm-tblgen first.
 
@@ -126,15 +127,6 @@ publishes that tested artifact using npm Trusted Publishing/OIDC with provenance
 No npm token secret is used. All GitHub Actions are pinned by full commit SHA;
 Dependabot maintains updates. Release assets include the tarball and its checksum.
 
-For a new package, npm currently requires a first authenticated publication before
-trust can be configured. After that publication, the owner runs:
-
-```sh
-npm trust github llvm-x86-disasm --file publish.yml \
-  --repo Gladskih/llvm-x86-disasm --allow-publish --yes
-```
-
-See [npm trust prerequisites](https://docs.npmjs.com/cli/v11/commands/npm-trust/).
 The workflow is rerunnable and verifies integrity if that exact version already exists.
 
 License: MIT wrapper; LLVM and toolchain components retain their original licenses.
