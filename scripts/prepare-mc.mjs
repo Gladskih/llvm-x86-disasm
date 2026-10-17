@@ -10,9 +10,6 @@ assert([
   "89306127b9e6427760aed38e02c0b5b96e5c3d01001509a10b03a95739e3dbec",
   "8adf1f073f36fc06f357fa3494c74a43ac7624cda7de34a71d47a19aef511b88",
 ].includes(createHash("sha256").update(cpp).digest("hex")),
-  "89306127b9e6427760aed38e02c0b5b96e5c3d01001509a10b03a95739e3dbec",
-  "8adf1f073f36fc06f357fa3494c74a43ac7624cda7de34a71d47a19aef511b88",
-].includes(createHash("sha256").update(cpp).digest("hex")),
   "Review MC adapter after updating LLVM");
 const registration = /extern "C" LLVM_C_ABI void LLVMInitializeX86TargetMC\(\) \{[\s\S]*?\n\}/g;
 assert.equal([...cpp.matchAll(registration)].length, 1);
