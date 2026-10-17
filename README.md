@@ -75,17 +75,14 @@ from mnemonics. It is suitable for decoding and inspecting LLVM metadata; use a
 separately validated capability mapping or iced/XED for definitive ISA checking.
 Decoding success alone never proves processor or OS execution support.
 
-Sources: pinned [X86InstrPredicates.td](https://github.com/llvm/llvm-project/blob/2078da43e25a4623cab2d0d60decddf709aaea28/llvm/lib/Target/X86/X86InstrPredicates.td),
-[X86Disassembler.cpp](https://github.com/llvm/llvm-project/blob/2078da43e25a4623cab2d0d60decddf709aaea28/llvm/lib/Target/X86/Disassembler/X86Disassembler.cpp),
-and [X86MCTargetDesc.cpp](https://github.com/llvm/llvm-project/blob/2078da43e25a4623cab2d0d60decddf709aaea28/llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.cpp).
+Upstream source references (the build revision is in [`upstream.json`](upstream.json)): [X86InstrPredicates.td](https://github.com/llvm/llvm-project/blob/main/llvm/lib/Target/X86/X86InstrPredicates.td),
+[X86Disassembler.cpp](https://github.com/llvm/llvm-project/blob/main/llvm/lib/Target/X86/Disassembler/X86Disassembler.cpp),
+and [X86MCTargetDesc.cpp](https://github.com/llvm/llvm-project/blob/main/llvm/lib/Target/X86/MCTargetDesc/X86MCTargetDesc.cpp).
 LLVM opcode names are version-specific and must not be persisted as stable identifiers.
 
 ## Size and build scope
 
-LLVM 21.1.8 / Emscripten 4.0.23, pinned by commit; LLVM source archive verified by
-SHA-256. The 0.1.2 build produces **1,874,809 WASM bytes / 553,544 gzip bytes**
-(gzip level 9). Local WSL and GitHub Actions builds produced the same WASM SHA-256:
-`85626f44ead5b000cf2914e4837ddca0d21fc77cc1ff6b39c210516205e15ea5`.
+[`upstream.json`](upstream.json) pins LLVM and Emscripten by commit; the LLVM source archive is verified by SHA-256.
 `dist/build-info.json` records sizes, checksums and toolchain pins for each build.
 
 Only X86 MC disassembly, Intel formatting, instruction information and control-flow
@@ -149,7 +146,8 @@ compatibility line (minor for 0.x, major for 1.0+), and dispatches the normal pu
 workflow on an isolated candidate branch. That workflow runs the complete existing
 build/test/package gate before merging a PR, creating the version tag and publishing
 the exact tested archive with npm OIDC/provenance. Source/schema or license changes
-that fail CI stop publication; fix the candidate and rerun its publish workflow.
+that fail CI stop publication. Apply compatibility fixes on main, then recreate the
+single-commit pin/version candidate on that main and rerun its publish workflow.
 If main advances, rebase and recheck the candidate. Toolchain pins (Emscripten, Rust,
 Binaryen, wasm-bindgen and build helpers) remain independent of this library watcher.
 
