@@ -27,17 +27,21 @@ if (remote) {
   assert.equal((refs.find(ref => ref[1].endsWith("^{}")) ?? refs[0])[0], sha,
     "Release tag points elsewhere");
 }
-const merged = execFileSync("git", ["merge-base", sha, "origin/main"],
+const ancestor = execFileSync("git", ["merge-base", sha, "origin/main"],
   { encoding: "utf8" }).trim() === sha;
+const pulls = ancestor ? [] : JSON.parse(execFileSync("gh", ["pr", "list", "--head", branch,
+  "--state", "all", "--json", "state,headRefOid,mergeCommit"], { encoding: "utf8" }));
+const mergedPull = pulls.find(pull => pull.state === "MERGED" && pull.headRefOid === sha);
+if (mergedPull) assert.equal(run("rev-parse", mergedPull.mergeCommit.oid + "^{tree}"),
+  run("rev-parse", sha + "^{tree}"), "Merged source differs from the verified candidate");
+const merged = ancestor || mergedPull;
 if (!merged) {
   assert.equal(run("rev-parse", "origin/main"), base, "Main changed; rebase and recheck the candidate");
-  const existing = JSON.parse(execFileSync("gh", ["pr", "list", "--head", branch,
-    "--state", "open", "--json", "number"], { encoding: "utf8" }));
-  if (!existing.length) execFileSync("gh", ["pr", "create", "--base", "main", "--head", branch,
+  if (!pulls.some(pull => pull.state === "OPEN")) execFileSync("gh", ["pr", "create", "--base", "main", "--head", branch,
     "--title", "Update upstream for " + tag, "--body",
     "Pinned stable upstream update. Full package CI passed before automatic merge and publication."],
   { stdio: "inherit" });
-  execFileSync("gh", ["pr", "merge", branch, "--merge", "--match-head-commit", sha],
+  execFileSync("gh", ["pr", "merge", branch, "--squash", "--match-head-commit", sha],
     { stdio: "inherit" });
 }
 if (!remote) {

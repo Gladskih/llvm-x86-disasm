@@ -53,8 +53,17 @@ async function installGithubCLI(fixture) {
     const fs = require("node:fs"), cp = require("node:child_process");
     const args = process.argv.slice(2);
     fs.appendFileSync("calls.log", JSON.stringify(args) + "\\n");
-    if (args[1] === "list") process.stdout.write("[]");
-    if (args[1] === "merge") cp.execFileSync("git", ["push", "origin", args[2] + ":main"]);
+    const git = (...values) => cp.execFileSync("git", values, { encoding: "utf8" }).trim();
+    if (args[1] === "list") process.stdout.write(fs.existsSync("merged.json")
+      ? fs.readFileSync("merged.json", "utf8") : "[]");
+    if (args[1] === "merge") {
+      if (!args.includes("--squash")) throw Error("Repository forbids merge commits");
+      const sha = git("rev-parse", args[2]);
+      const merged = git("commit-tree", sha + "^{tree}", "-p", "origin/main", "-m", "Squash update");
+      git("push", "origin", merged + ":main");
+      fs.writeFileSync("merged.json", JSON.stringify([{ state: "MERGED", headRefOid: sha,
+        mergeCommit: { oid: merged } }]));
+    }
   `, { mode: 0o755 });
   return bin;
 }
@@ -70,12 +79,16 @@ test("verified candidates merge, tag and retry without rewriting anything", {
   const fixture = await repository(context);
   const first = await promote(fixture);
   assert.equal(first.status, 0, first.stderr);
-  assert.equal(fixture.git("rev-parse", "origin/main"), fixture.sha);
+  assert.notEqual(fixture.git("rev-parse", "origin/main"), fixture.sha);
+  assert.equal(fixture.git("rev-parse", "origin/main^{tree}"), fixture.git("rev-parse", "HEAD^{tree}"));
   assert.equal(fixture.git("rev-parse", "v0.2.0^{}"), fixture.sha);
   const calls = await readFile(join(fixture.root, "calls.log"), "utf8");
   const second = await promote(fixture);
   assert.equal(second.status, 0, second.stderr);
-  assert.equal(await readFile(join(fixture.root, "calls.log"), "utf8"), calls);
+  const before = calls.trim().split("\n").map(line => JSON.parse(line));
+  const after = (await readFile(join(fixture.root, "calls.log"), "utf8"))
+    .trim().split("\n").map(line => JSON.parse(line));
+  assert.deepEqual(after.filter(args => args[1] !== "list"), before.filter(args => args[1] !== "list"));
   assert((await readFile(join(fixture.root, "env"), "utf8")).includes("RELEASE_TAG=v0.2.0"));
 });
 async function check(fixture, mode) {
