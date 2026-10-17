@@ -64,6 +64,12 @@ async function installGithubCLI(fixture) {
       fs.writeFileSync("merged.json", JSON.stringify([{ state: "MERGED", headRefOid: sha,
         mergeCommit: { oid: merged } }]));
     }
+    if (args[1] === "merge" && fs.existsSync("advance-on-merge")) {
+      const git = (...values) => cp.execFileSync("git", values, { encoding: "utf8" }).trim();
+      const sha = git("rev-parse", args[2]);
+      const moved = git("commit-tree", sha + "^{tree}", "-p", sha, "-m", "Manual work after merge");
+      git("push", "origin", moved + ":" + args[2]);
+    }
   `, { mode: 0o755 });
   return bin;
 }
@@ -71,7 +77,9 @@ async function promote(fixture) {
   const bin = await installGithubCLI(fixture);
   return spawnSync(process.execPath, [program], { cwd: fixture.root, encoding: "utf8",
     env: { ...process.env, PATH: bin + delimiter + dirname(process.execPath) + delimiter + process.env.PATH,
-      GITHUB_SHA: fixture.sha, GITHUB_REF_NAME: branch, GITHUB_ENV: join(fixture.root, "env") } });
+      GITHUB_SHA: fixture.sha, GITHUB_REF_NAME: branch, GITHUB_ENV: join(fixture.root, "env"),
+      GITHUB_REPOSITORY: "example/package", GITHUB_SERVER_URL: "https://github.com",
+      GITHUB_RUN_ID: "123" } });
 }
 test("verified candidates merge, tag and retry without rewriting anything", {
   skip: process.platform === "win32",
@@ -83,10 +91,16 @@ test("verified candidates merge, tag and retry without rewriting anything", {
   assert.equal(fixture.git("rev-parse", "origin/main^{tree}"), fixture.git("rev-parse", "HEAD^{tree}"));
   assert.equal(fixture.git("rev-parse", "v0.2.0^{}"), fixture.sha);
   const calls = await readFile(join(fixture.root, "calls.log"), "utf8");
-  fixture.git("push", "origin", "--delete", branch);
+  assert.equal(fixture.git("ls-remote", "origin", "refs/heads/" + branch), "");
   const second = await promote(fixture);
   assert.equal(second.status, 0, second.stderr);
   const before = calls.trim().split("\n").map(line => JSON.parse(line));
+  const status = before.find(args => args[0] === "api");
+  assert(status, "The verified head commit must be reported before PR merge");
+  assert(status.includes("repos/example/package/statuses/" + fixture.sha));
+  assert(status.includes("state=success") && status.includes("context=verify"));
+  assert(status.includes("target_url=https://github.com/example/package/actions/runs/123"));
+  assert(before.indexOf(status) < before.findIndex(args => args[1] === "merge"));
   const after = (await readFile(join(fixture.root, "calls.log"), "utf8"))
     .trim().split("\n").map(line => JSON.parse(line));
   assert.deepEqual(after.filter(args => args[1] !== "list"), before.filter(args => args[1] !== "list"));
@@ -194,4 +208,18 @@ test("an unmerged candidate cannot be promoted after its branch is deleted", {
   assert.match(result.stderr, /Candidate branch missing before merge/);
   assert.equal(fixture.git("rev-parse", "origin/main"), fixture.base);
   assert.equal(fixture.git("tag", "--list"), "");
+});
+
+test("manual work pushed after merge is preserved during candidate cleanup", {
+  skip: process.platform === "win32",
+}, async context => {
+  const fixture = await repository(context);
+  await writeFile(join(fixture.root, "advance-on-merge"), "");
+  const result = await promote(fixture);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stderr, /Candidate changed after merge/);
+  const remote = fixture.git("ls-remote", "origin", "refs/heads/" + branch).split(/\s+/)[0];
+  assert.notEqual(remote, fixture.sha);
+  assert.equal(fixture.git("rev-parse", remote + "^"), fixture.sha);
+  assert.equal(fixture.git("rev-parse", "v0.2.0^{}"), fixture.sha);
 });

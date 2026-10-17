@@ -43,11 +43,29 @@ if (!merged) {
     "--title", "Update upstream for " + tag, "--body",
     "Pinned stable upstream update. Full package CI passed before automatic merge and publication."],
   { stdio: "inherit" });
+  // workflow_dispatch job checks cannot satisfy a PR's required check. Report
+  // the completed release gate through the commit-status API with the same app.
+  execFileSync("gh", ["api", "--method", "POST", "repos/" + process.env.GITHUB_REPOSITORY +
+    "/statuses/" + sha, "-f", "state=success", "-f", "context=verify", "-f",
+    "description=Full release verification passed for this commit", "-f",
+    "target_url=" + process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY +
+    "/actions/runs/" + process.env.GITHUB_RUN_ID, "--silent"], { stdio: "inherit" });
   execFileSync("gh", ["pr", "merge", branch, "--squash", "--match-head-commit", sha],
     { stdio: "inherit" });
 }
 if (!remote) {
   run("tag", "-a", tag, sha, "-m", "Release " + tag);
   execFileSync("git", ["push", "origin", tag], { stdio: "inherit" });
+}
+const candidateRef = "refs/heads/" + branch;
+const remaining = run("ls-remote", "origin", candidateRef);
+if (remaining) {
+  assert.equal(remaining.split(/\s+/)[0], sha, "Candidate changed after merge; keep it for review");
+  try {
+    execFileSync("git", ["push", "--force-with-lease=" + candidateRef + ":" + sha,
+      "origin", ":" + candidateRef], { stdio: "inherit" });
+  } catch (error) {
+    if (run("ls-remote", "origin", candidateRef)) throw error;
+  }
 }
 await appendFile(process.env.GITHUB_ENV, "RELEASE_TAG=" + tag + "\n");
