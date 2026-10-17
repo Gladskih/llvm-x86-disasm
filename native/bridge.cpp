@@ -1,4 +1,5 @@
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/Config/llvm-config.h"
 #include "llvm/MC/MCAsmInfo.h"
 #include "llvm/MC/MCContext.h"
 #include "llvm/MC/MCDisassembler/MCDisassembler.h"
@@ -42,10 +43,15 @@ struct Decoder {
     std::string error;
     const auto *target = TargetRegistry::lookupTarget(triple, error);
     if (!target) return;
-    registers.reset(target->createMCRegInfo(triple.str()));
+#if LLVM_VERSION_MAJOR >= 23
+    const auto &factoryTriple = triple;
+#else
+    const auto &factoryTriple = triple.str();
+#endif
+    registers.reset(target->createMCRegInfo(factoryTriple));
     if (!registers) return;
-    assembly.reset(target->createMCAsmInfo(*registers, triple.str(), MCTargetOptions{}));
-    subtarget.reset(target->createMCSubtargetInfo(triple.str(), "generic", ""));
+    assembly.reset(target->createMCAsmInfo(*registers, factoryTriple, MCTargetOptions{}));
+    subtarget.reset(target->createMCSubtargetInfo(factoryTriple, "generic", ""));
     instructions.reset(target->createMCInstrInfo());
     if (!assembly || !subtarget || !instructions) return;
     context = std::make_unique<MCContext>(triple, assembly.get(), registers.get(), subtarget.get());

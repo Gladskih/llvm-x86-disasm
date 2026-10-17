@@ -2,6 +2,7 @@
 import { readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import assert from "node:assert/strict";
+import { subtargetStorage } from "./subtarget-storage.mjs";
 
 const [source, subtargetPath, output] = process.argv.slice(2);
 let cpp = await readFile(source, "utf8");
@@ -33,21 +34,31 @@ function extract(pattern, label) {
   assert.equal(matches.length, 1, `Review generated ${label} after LLVM changes`);
   return matches[0][0];
 }
-const featureTable = extract(
-  /extern const llvm::SubtargetFeatureKV X86FeatureKV\[\] = \{[\s\S]*?\n\};/g,
-  "feature table");
-const generic = extract(/^ \{ "generic", .* &\w+Model \},$/gm, "generic CPU")
-  .replace(/&\w+Model/, "&MCSchedModel::Default");
+const modern = subtarget.includes("X86FeatureKVStorage =");
+let tables;
+if (modern) tables = subtargetStorage(subtarget, "X86");
+else {
+  const features = extract(
+    /extern const llvm::SubtargetFeatureKV X86FeatureKV\[\] = \{[\s\S]*?\n\};/g,
+    "feature table");
+  const generic = extract(/^ \{ "generic", .* &\w+Model \},$/gm, "generic CPU")
+    .replace(/&\w+Model/, "&MCSchedModel::Default");
+  tables = `${features}
+extern const llvm::SubtargetSubTypeKV X86SubTypeKV[] = { ${generic} };
+extern const llvm::StringRef X86Names[] = { "generic" };`;
+}
+const argumentsForTables = modern
+  ? "StringTable(X86SubTypeKVStorage.Strings), X86FeatureKVStorage.Features, " +
+    "X86SubTypeKVStorage.SubTypes, X86SchedModels"
+  : "X86Names, X86FeatureKV, X86SubTypeKV";
 const include = "#define GET_SUBTARGETINFO_MC_DESC\n#include \"X86GenSubtargetInfo.inc\"";
 assert(cpp.includes(include));
 cpp = cpp.replace(include, `namespace llvm {
-${featureTable}
-extern const llvm::SubtargetSubTypeKV X86SubTypeKV[] = { ${generic} };
-extern const llvm::StringRef X86Names[] = { "generic" };
+${tables}
 static inline MCSubtargetInfo *createX86MCSubtargetInfoImpl(
     const Triple &triple, StringRef cpu, StringRef tuneCpu, StringRef featureString) {
   return new MCSubtargetInfo(triple, cpu, tuneCpu, featureString,
-      X86Names, X86FeatureKV, X86SubTypeKV,
+      ${argumentsForTables},
       nullptr, nullptr, nullptr, nullptr, nullptr, nullptr);
 }
 }`);
