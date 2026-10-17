@@ -71,7 +71,9 @@ async function promote(fixture) {
   const bin = await installGithubCLI(fixture);
   return spawnSync(process.execPath, [program], { cwd: fixture.root, encoding: "utf8",
     env: { ...process.env, PATH: bin + delimiter + dirname(process.execPath) + delimiter + process.env.PATH,
-      GITHUB_SHA: fixture.sha, GITHUB_REF_NAME: branch, GITHUB_ENV: join(fixture.root, "env") } });
+      GITHUB_SHA: fixture.sha, GITHUB_REF_NAME: branch, GITHUB_ENV: join(fixture.root, "env"),
+      GITHUB_REPOSITORY: "example/package", GITHUB_SERVER_URL: "https://github.com",
+      GITHUB_RUN_ID: "123" } });
 }
 test("verified candidates merge, tag and retry without rewriting anything", {
   skip: process.platform === "win32",
@@ -87,6 +89,12 @@ test("verified candidates merge, tag and retry without rewriting anything", {
   const second = await promote(fixture);
   assert.equal(second.status, 0, second.stderr);
   const before = calls.trim().split("\n").map(line => JSON.parse(line));
+  const status = before.find(args => args[0] === "api");
+  assert(status, "The verified head commit must be reported before PR merge");
+  assert(status.includes("repos/example/package/statuses/" + fixture.sha));
+  assert(status.includes("state=success") && status.includes("context=verify"));
+  assert(status.includes("target_url=https://github.com/example/package/actions/runs/123"));
+  assert(before.indexOf(status) < before.findIndex(args => args[1] === "merge"));
   const after = (await readFile(join(fixture.root, "calls.log"), "utf8"))
     .trim().split("\n").map(line => JSON.parse(line));
   assert.deepEqual(after.filter(args => args[1] !== "list"), before.filter(args => args[1] !== "list"));

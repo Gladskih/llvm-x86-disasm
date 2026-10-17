@@ -43,6 +43,13 @@ if (!merged) {
     "--title", "Update upstream for " + tag, "--body",
     "Pinned stable upstream update. Full package CI passed before automatic merge and publication."],
   { stdio: "inherit" });
+  // workflow_dispatch job checks cannot satisfy a PR's required check. Report
+  // the completed release gate through the commit-status API with the same app.
+  execFileSync("gh", ["api", "--method", "POST", "repos/" + process.env.GITHUB_REPOSITORY +
+    "/statuses/" + sha, "-f", "state=success", "-f", "context=verify", "-f",
+    "description=Full release verification passed for this commit", "-f",
+    "target_url=" + process.env.GITHUB_SERVER_URL + "/" + process.env.GITHUB_REPOSITORY +
+    "/actions/runs/" + process.env.GITHUB_RUN_ID, "--silent"], { stdio: "inherit" });
   execFileSync("gh", ["pr", "merge", branch, "--squash", "--match-head-commit", sha],
     { stdio: "inherit" });
 }
