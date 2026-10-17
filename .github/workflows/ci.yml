@@ -41,6 +41,8 @@ jobs:
             .build/bridge
           key: llvm-x86-build-${{ runner.os }}-${{ hashFiles('upstream.json', 'scripts/build-wasm.sh', 'scripts/prepare-mc.mjs', 'native/CMakeLists.txt') }}
       - run: sudo apt-get update && sudo apt-get install -y ninja-build cmake
+      - name: Verify release maintenance
+        run: node --test test/release-assets.test.mjs test/upstream-release.test.mjs test/upstream-promotion.test.mjs test/registry-release.test.mjs
       - run: npm ci
       - run: npm run lint
       - run: npm run build:wasm
