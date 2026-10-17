@@ -42,6 +42,7 @@ emcmake cmake -S "$SOURCE/llvm" -B "$BUILD/wasm" "${COMMON[@]}" \
   -DLLVM_DEFAULT_TARGET_TRIPLE=x86_64-none-unknown \
   -DLLVM_TABLEGEN="$BUILD/host/bin/llvm-tblgen" -DLLVM_ENABLE_THREADS=OFF \
   -DLLVM_ENABLE_BACKTRACES=OFF -DLLVM_ENABLE_UNWIND_TABLES=OFF \
+  -DLLVM_INCLUDE_TOOLS=OFF \
   -DCMAKE_C_FLAGS_RELEASE='-Oz -DNDEBUG -flto' \
   -DCMAKE_CXX_FLAGS_RELEASE='-Oz -DNDEBUG -flto'
 cmake --build "$BUILD/wasm" --target LLVMX86Disassembler LLVMX86Desc LLVMX86Info -j "$JOBS"
