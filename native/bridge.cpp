@@ -54,7 +54,11 @@ struct Decoder {
     subtarget.reset(target->createMCSubtargetInfo(factoryTriple, "generic", ""));
     instructions.reset(target->createMCInstrInfo());
     if (!assembly || !subtarget || !instructions) return;
+#if LLVM_VERSION_MAJOR >= 23
+    context = std::make_unique<MCContext>(triple, *assembly, *registers, *subtarget);
+#else
     context = std::make_unique<MCContext>(triple, assembly.get(), registers.get(), subtarget.get());
+#endif
     disassembler.reset(target->createMCDisassembler(*subtarget, *context));
     // llvm-mc --output-asm-variant=1 selects Intel syntax.
     printer.reset(target->createMCInstPrinter(triple, 1, *assembly, *instructions, *registers));
